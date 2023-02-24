@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>clock/hour.png</file>
+        <file>clock/minute.png</file>
+        <file>clock/second.png</file>
+        <file>clock/the-persistence-of-memory-painting-by-salvador-dali-uhd-4k-wallpaper.jpg</file>
+        <file>clock/bkg.png</file>
+    </qresource>
+</RCC>
