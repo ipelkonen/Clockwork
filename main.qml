@@ -29,6 +29,19 @@ Window {
                 bold: true
             }
         }
+
+        Text {
+            text: "Clock image by onlyyouqj on Freepik"
+            width: parent.width
+            height: parent.height - 5
+            color: "lightgray"
+            horizontalAlignment: Text.AlignRight
+            verticalAlignment: Text.AlignBottom
+            font {
+                pixelSize: 10
+                family: "chilanka"
+            }
+        }
     }
 
     property real mouseX: 0
