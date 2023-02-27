@@ -1,4 +1,4 @@
-# Clockwork - A QML Demo Application
+# Clockwork - A QML Demo Application (Qt 6.2 LTS)
 
 This demo quickly demonstrated QML capabilities with embedded JavaScript and a fragment shader.
 
