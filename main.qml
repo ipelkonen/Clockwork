@@ -73,30 +73,6 @@ Window {
         return date.getSeconds() / 60 * 360.0;
     }
 
-    // Calculates vector theta angle to X axis
-    function getTheta(v) {
-        if (v.x === 0) {
-            return v.y > 0 ? Math.PI / 2 : v.y === 0 ? 0 : -Math.PI / 2
-        }
-
-        const theta = Math.atan(v.y / v.x)
-        const absTheta = Math.abs(theta)
-
-        if (v.x > 0) {
-            if (v.y > 0) {
-                return absTheta
-            }
-
-            return 2 * Math.PI - absTheta
-        }
-
-        if (v.y > 0) {
-            return Math.PI - absTheta
-        }
-
-        return Math.PI + absTheta
-    }
-
     // Background image and clockwork area
     Image {
         id: background
@@ -135,11 +111,7 @@ Window {
                 width: clockImage.width
                 height: clockImage.height
                 fillMode: Image.PreserveAspectFit
-                // Rotate the pointer into place
-                transform: Rotation {
-                    id: secondRotation
-                    origin.x: 150; origin.y: 150; angle: window.getSecondAngle()
-                }
+                rotation: window.getSecondAngle()
             }
 
             // Hour pointer
@@ -149,11 +121,7 @@ Window {
                 width: clockImage.width
                 height: clockImage.height
                 fillMode: Image.PreserveAspectFit
-                // Rotate the pointer into place
-                transform: Rotation {
-                    id: hourRotation
-                    origin.x: 150; origin.y: 150; angle: window.getHourAngle()
-                }
+                rotation: window.getHourAngle()
             }
 
             // Minute pointer
@@ -163,11 +131,7 @@ Window {
                 width: clockImage.width
                 height: clockImage.height
                 fillMode: Image.PreserveAspectFit
-                // Rotate the pointer into place
-                transform: Rotation {
-                    id: minuteRotation
-                    origin.x: 150; origin.y: 150; angle: window.getMinuteAngle()
-                }
+                rotation: window.getMinuteAngle()
             }
         }
 
@@ -225,9 +189,9 @@ Window {
                     }
 
                     // Update time shown by the clock
-                    hourRotation.angle = getHourAngle()
-                    minuteRotation.angle = getMinuteAngle()
-                    secondRotation.angle = getSecondAngle()
+                    hourImage.rotation = getHourAngle()
+                    minuteImage.rotation = getMinuteAngle()
+                    secondImage.rotation = getSecondAngle()
 
                     // Find vector components from the mouse to the clock (non-wobbled) center point
                     const vectorX = shader.centerX - window.mouseX
@@ -241,12 +205,12 @@ Window {
                     }
 
                     // Get vector angle
-                    const theta = window.getTheta(Qt.vector2d(vectorX, vectorY))
+                    const theta = Math.atan2(vectorY, vectorX)
 
                     if (distance < 300) {
                         // We're near the clock - adjust speed and direction
                         parent.speed = Math.min(20, parent.speed * (1.0 + (300 - distance) / 5000))
-                        parent.direction += (theta - Math.PI / 2) / 50
+                        parent.direction += theta / 50
                     }
 
                     // Return speed gradually to normal
