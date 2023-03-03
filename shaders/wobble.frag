@@ -18,6 +18,6 @@ layout(binding = 1) uniform sampler2D src;
 void main()
 {
     // Wobble effect
-    highp vec2 p = sin(time + frequency * qt_TexCoord0);
-    fragColor = texture(src, qt_TexCoord0 + amplitude * vec2(p.y, -p.x)) * qt_Opacity;
+    highp vec2 p = sin(time + frequency * qt_TexCoord0) * amplitude;
+    fragColor = (texture(src, qt_TexCoord0 + p) + texture(src, qt_TexCoord0 - p) / 4) * qt_Opacity * 0.7;
 }
