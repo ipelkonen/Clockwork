@@ -1,4 +1,6 @@
 import QtQuick
+import Translator // C++ singleton class
+import MouseEventListener // C++ singleton class
 
 Window {
     id: window
@@ -18,9 +20,43 @@ Window {
         height: 50
         color: "black"
 
+        // Language selection label
+        Text {
+            id: labelLanguage
+            text: qsTr("Language:")
+            anchors { bottom: parent.bottom; bottomMargin: 15 }
+            color: "lightgray"
+            verticalAlignment: Text.AlignBottom
+            font {
+                pixelSize: 16
+                family: "chilanka"
+                bold: true
+            }
+        }
+
+        // Language selection combo box
+        CustomComboBox {
+            id: comboLanguage
+            anchors { left: labelLanguage.right; leftMargin: 5; bottom: parent.bottom; bottomMargin: 10 }
+            height: 30
+            font: labelLanguage.font
+
+            // Separate text and value in the model
+            textRole: "text"
+            valueRole: "value"
+
+            model: [
+                { value: Translator.En, text: "English" },
+                { value: Translator.Fi, text: "Suomi" }
+            ]
+
+            onActivated: Translator.language = currentValue // This calls C++ setter Translator::setLanguage() in accordance to the Q_PROPERTY binding
+            Component.onCompleted: Translator.language = Translator.En // Default language is English
+        }
+
         // Score indicator
         Text {
-            text: "Score: " + Math.floor(score)
+            text: qsTr("Score: %L1").arg(Math.floor(score))
             width: parent.width
             height: parent.height - 5
             color: "lightgray"
@@ -35,7 +71,7 @@ Window {
 
         // Clock image copyright text
         Text {
-            text: "Clock image by onlyyouqj on Freepik"
+            text: qsTr("Clock image by %1 on %2").arg("onlyyouqj").arg("Freepik")
             width: parent.width
             height: parent.height - 5
             color: "lightgray"
@@ -48,9 +84,17 @@ Window {
         }
     }
 
-    // Stored mouse coordinates (see bottom of file for update)
-    property real mouseX: 0
-    property real mouseY: 0
+    // Stored mouse coordinates
+    property point mousePos: "0, 0"
+
+    // Connection to C++
+    Connections {
+        target: MouseEventListener
+        // C++ signal detecting mouse movement
+        function onMouseEventDetected(position) {
+            mousePos = position; // Update mouse position
+        }
+    }
 
     // Calculates hour pointer angle for the clock
     // The pointer is adjusted by score!
@@ -194,8 +238,8 @@ Window {
                     secondImage.rotation = getSecondAngle()
 
                     // Find vector components from the mouse to the clock (non-wobbled) center point
-                    const vectorX = shader.centerX - window.mouseX
-                    const vectorY = shader.centerY - window.mouseY
+                    const vectorX = shader.centerX - window.mousePos.x
+                    const vectorY = shader.centerY - window.mousePos.y
 
                     // Calculate mouse distance to the center point
                     const distance = Math.sqrt(Math.pow(vectorX, 2) + Math.pow(vectorY, 2))
@@ -218,13 +262,5 @@ Window {
                 }
             }
         }
-    }
-
-    // MouseArea to update mouse position
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        onMouseXChanged: window.mouseX = mouseX
-        onMouseYChanged: window.mouseY = mouseY
     }
 }
