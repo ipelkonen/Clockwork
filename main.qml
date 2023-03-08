@@ -1,5 +1,4 @@
 import QtQuick
-import Translator // C++ singleton class
 import MouseEventListener // C++ singleton class
 
 Window {
@@ -12,6 +11,39 @@ Window {
 
     // Game score
     property real score: 0
+    // Game timer
+    property int timer: 0
+    // Game running flag
+    property bool running: timer > 0
+    // Game finished flag
+    property bool finished: false
+
+    // Startup popup
+    CustomPopup {
+        title: window.title
+        prompt: qsTr("Please start the game below.")
+        button: qsTr("Start Game")
+        visible: true
+        onClosed: window.timer = 60000
+    }
+
+    // End of game popup
+    CustomPopup {
+        title: qsTr("Game Over")
+        prompt: qsTr("Final score: %L1").arg(Math.floor(window.score))
+        button: qsTr("New Game")
+        visible: window.finished
+        onClosed: {
+            // Reset parameters
+            window.score = 0;
+            shader.centerX = window.initCenterX();
+            shader.centerY = window.initCenterY();
+            shader.speed = 1.0;
+            shader.direction = window.initDirection();
+            window.timer = 60000;
+            window.finished = false;
+        }
+    }
 
     // Bottom area of the screen
     Rectangle {
@@ -20,42 +52,39 @@ Window {
         height: 50
         color: "black"
 
-        // Language selection label
-        Text {
-            id: labelLanguage
-            text: qsTr("Language:")
-            anchors { bottom: parent.bottom; bottomMargin: 15 }
+        // Time left progress bar background
+        Rectangle {
+            id: progressBackground
+            anchors { top: parent.top; topMargin: 5; left: parent.left; leftMargin: 5; right: parent.right; rightMargin: 5 }
+            height: 5
             color: "lightgray"
-            verticalAlignment: Text.AlignBottom
-            font {
-                pixelSize: 16
-                family: "chilanka"
-                bold: true
-            }
+            visible: window.running
         }
 
-        // Language selection combo box
-        CustomComboBox {
-            id: comboLanguage
-            anchors { left: labelLanguage.right; leftMargin: 5; bottom: parent.bottom; bottomMargin: 10 }
-            height: 30
-            font: labelLanguage.font
+        // Time left progress bar
+        Rectangle {
+            anchors { top: parent.top; topMargin: 5; left: parent.left; leftMargin: 5 }
+            width: progressBackground.width * window.timer / 60000
+            height: 5
+            color: "red"
+            opacity: 0.5
+            visible: window.running
+        }
 
-            // Separate text and value in the model
-            textRole: "text"
-            valueRole: "value"
-
-            model: [
-                { value: Translator.En, text: "English" },
-                { value: Translator.Fi, text: "Suomi" }
-            ]
-
-            onActivated: Translator.language = currentValue // This calls C++ setter Translator::setLanguage() in accordance to the Q_PROPERTY binding
-            Component.onCompleted: Translator.language = Translator.En // Default language is English
+        // Time remaining text
+        Text {
+            anchors { left: parent.left; leftMargin: 10; bottom: textScore.bottom }
+            color: "lightgray"
+            font: textScore.font
+            // Fade in in 1s
+            NumberAnimation on opacity { from: 0; to: 1; duration: 1000; running: window.running }
+            visible: window.running
+            text: qsTr("Time remaining: %1").arg((window.timer / 1000.0).toFixed(1))
         }
 
         // Score indicator
         Text {
+            id: textScore
             text: qsTr("Score: %L1").arg(Math.floor(score))
             width: parent.width
             height: parent.height - 5
@@ -99,15 +128,15 @@ Window {
     // Calculates hour pointer angle for the clock
     // The pointer is adjusted by score!
     function getHourAngle() {
-        const date = new Date(new Date().getTime() + Math.floor(score) * 1000)
-        return (date.getHours() + date.getMinutes() / 60) / 12 * 360.0
+        const date = new Date(new Date().getTime() + Math.floor(score) * 1000);
+        return (date.getHours() + date.getMinutes() / 60) / 12 * 360.0;
     }
 
     // Calculates minute pointer angle for the clock
     // The pointer is adjusted by score!
     function getMinuteAngle() {
-        const date = new Date(new Date().getTime() + Math.floor(score) * 1000)
-        return (date.getMinutes() + date.getSeconds() / 60) / 60 * 360.0
+        const date = new Date(new Date().getTime() + Math.floor(score) * 1000);
+        return (date.getMinutes() + date.getSeconds() / 60) / 60 * 360.0;
     }
 
     // Calculates second pointer angle for the clock
@@ -115,6 +144,18 @@ Window {
     function getSecondAngle() {
         const date = new Date(new Date().getTime() + Math.floor(score) * 1000);
         return date.getSeconds() / 60 * 360.0;
+    }
+
+    function initCenterX() {
+        return Math.random() * (background.width - clockImage.width / 3);
+    }
+
+    function initCenterY() {
+        return Math.random() * (background.height - clockImage.height / 3);
+    }
+
+    function initDirection() {
+        return Math.random() * 2 * Math.PI;
     }
 
     // Background image and clockwork area
@@ -179,7 +220,7 @@ Window {
             }
         }
 
-        // Wobble effect
+        // Wobbling clock
         ShaderEffect {
             id: shader
 
@@ -188,6 +229,7 @@ Window {
             y: centerY - clockImage.height / 2
             width: clockImage.width
             height: clockImage.height
+            visible: window.running
 
             // Alias for clock background safe area
             property alias safeArea: clockImage.safeArea
@@ -203,62 +245,70 @@ Window {
             NumberAnimation on time { loops: Animation.Infinite; from: 0; to: Math.PI * 2; duration: 6000 }
 
             // Center(x, y) define the actual position of the wobbled clock
-            property real centerX: Math.random() * (background.width - clockImage.width / 3)
-            property real centerY: Math.random() * (background.height - clockImage.height / 3)
+            property real centerX: window.initCenterX()
+            property real centerY: window.initCenterY()
 
             // Speed of the clock
             property real speed: 1.0
 
             // Direction of the clock
-            property real direction: Math.random() * 2 * Math.PI
+            property real direction: window.initDirection()
 
             // 20ms timer to update everything
             Timer {
-                interval: 20; running: true; repeat: true
+                interval: 20
+                running: window.running
+                repeat: true
                 onTriggered: {
                     // Update coordinates
-                    shader.centerX += Math.cos(parent.direction) * parent.speed
-                    shader.centerY += Math.sin(parent.direction) * parent.speed
+                    shader.centerX += Math.cos(parent.direction) * parent.speed;
+                    shader.centerY += Math.sin(parent.direction) * parent.speed;
 
                     // Bounce from X walls
                     if (shader.x < -shader.safeArea / 2 || shader.x > background.width - (shader.width - shader.safeArea / 2)) {
-                        parent.direction = Math.PI - parent.direction
-                        shader.centerX = Math.max(shader.safeArea, Math.min(shader.centerX, background.width - (shader.width - shader.safeArea) / 2))
+                        parent.direction = Math.PI - parent.direction;
+                        shader.centerX = Math.max(shader.safeArea, Math.min(shader.centerX, background.width - (shader.width - shader.safeArea) / 2));
                     }
 
                     // Bounce from Y walls
                     if (shader.y < -shader.safeArea / 2 || shader.y > background.height - (shader.height - shader.safeArea / 2)) {
-                        parent.direction = Math.PI*2 - parent.direction
-                        shader.centerY = Math.max(shader.safeArea, Math.min(shader.centerY, background.height - (shader.height - shader.safeArea) / 2))
+                        parent.direction = Math.PI*2 - parent.direction;
+                        shader.centerY = Math.max(shader.safeArea, Math.min(shader.centerY, background.height - (shader.height - shader.safeArea) / 2));
                     }
 
                     // Update time shown by the clock
-                    hourImage.rotation = getHourAngle()
-                    minuteImage.rotation = getMinuteAngle()
-                    secondImage.rotation = getSecondAngle()
+                    hourImage.rotation = getHourAngle();
+                    minuteImage.rotation = getMinuteAngle();
+                    secondImage.rotation = getSecondAngle();
 
                     // Find vector components from the mouse to the clock (non-wobbled) center point
-                    const vectorX = shader.centerX - window.mousePos.x
-                    const vectorY = shader.centerY - window.mousePos.y
+                    const vectorX = shader.centerX - window.mousePos.x;
+                    const vectorY = shader.centerY - window.mousePos.y;
 
                     // Calculate mouse distance to the center point
-                    const distance = Math.sqrt(Math.pow(vectorX, 2) + Math.pow(vectorY, 2))
+                    const distance = Math.sqrt(Math.pow(vectorX, 2) + Math.pow(vectorY, 2));
                     if (distance < 100) {
                         // We're on the clock - add to score
-                        window.score += 10 / (distance + 1)
+                        window.score += 10 / (distance + 1);
                     }
 
                     // Get vector angle
-                    const theta = Math.atan2(vectorY, vectorX)
+                    const theta = Math.atan2(vectorY, vectorX);
 
                     if (distance < 300) {
                         // We're near the clock - adjust speed and direction
-                        parent.speed = Math.min(20, parent.speed * (1.0 + (300 - distance) / 5000))
-                        parent.direction += theta / 50
+                        parent.speed = Math.min(20, parent.speed * (1.0 + (300 - distance) / 5000));
+                        parent.direction += theta / 50;
                     }
 
                     // Return speed gradually to normal
-                    parent.speed = Math.max(1.0, parent.speed / 1.01)
+                    parent.speed = Math.max(1.0, parent.speed / 1.004);
+
+                    // Update timer and finished flag
+                    window.timer -= 20;
+                    if (window.timer <= 0) {
+                        window.finished = true;
+                    }
                 }
             }
         }

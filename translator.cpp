@@ -7,7 +7,7 @@
 Translator::Translator(QQmlEngine* engine, QObject* parent)
     : QObject{parent},
       m_pEngine(engine),
-      m_language(Language::Undefined),
+      m_language(Language::En),
       m_pTranslator(new QTranslator())
 {
 }

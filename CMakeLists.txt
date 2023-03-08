@@ -24,7 +24,7 @@ qt_add_executable(appClockwork
 qt_add_qml_module(appClockwork
     URI Clockwork
     VERSION 1.0
-    QML_FILES main.qml CustomComboBox.qml
+    QML_FILES main.qml CustomComboBox.qml CustomPopup.qml
 )
 
 qt6_add_shaders(appClockwork "shaders"

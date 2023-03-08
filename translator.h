@@ -13,7 +13,7 @@ class Translator : public QObject
 {
     Q_OBJECT
 public:
-    enum Language { Undefined, En, Fi };
+    enum Language { En, Fi };
 
 private:
     // Declare enum for QML connectivity
